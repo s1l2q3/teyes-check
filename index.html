@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Uptime Dashboard</title>
+  <style>
+    body { font-family: sans-serif; max-width: 1000px; margin: 40px auto; padding: 0 20px; }
+    h1 { margin-bottom: 0; }
+    .regions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-top: 30px; }
+    .region h2 { margin: 0 0 12px; font-size: 1.1rem; color: #374151; }
+    .cards { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .card { background: #f9fafb; border-radius: 8px; padding: 12px 18px; }
+    .card h3 { margin: 0; font-size: 1.5rem; }
+    .card p { margin: 2px 0 0; color: #6b7280; font-size: 0.85rem; }
+    .ok   { color: #22c55e; font-weight: bold; }
+    .fail { color: #ef4444; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    th { background: #f9fafb; }
+  </style>
+</head>
+<body>
+  <h1>Uptime Dashboard</h1>
+  <div class="regions">
+    <div class="region" id="eu"><h2>🇪🇺 EU</h2></div>
+    <div class="region" id="us"><h2>🇺🇸 US</h2></div>
+    <div class="region" id="win"><h2>🪟 Windows</h2></div>
+  </div>
+
+  <script>
+    const regions = [
+      { id: 'eu',  file: 'metrics-eu.jsonl' },
+      { id: 'us',  file: 'metrics-us.jsonl' },
+      { id: 'win', file: 'metrics-win.jsonl' },
+    ];
+
+    function renderRegion(id, entries) {
+      const total   = entries.length;
+      const ok      = entries.filter(e => e.status === 'ok').length;
+      const uptime  = total ? ((ok / total) * 100).toFixed(1) : '—';
+      const avgTime = total
+        ? (entries.reduce((s, e) => s + e.response_time, 0) / total).toFixed(2)
+        : '—';
+
+      const rows = entries.slice(0, 20).map(e => `
+        <tr>
+          <td>${e.time.replace('T',' ').replace('Z','')}</td>
+          <td class="${e.status}">${e.status.toUpperCase()}</td>
+          <td>${e.http_code}</td>
+          <td>${e.response_time}s</td>
+        </tr>`).join('');
+
+      document.getElementById(id).innerHTML += `
+        <div class="cards">
+          <div class="card"><h3>${uptime}%</h3><p>Uptime</p></div>
+          <div class="card"><h3>${total}</h3><p>Checks</p></div>
+          <div class="card"><h3>${avgTime}s</h3><p>Avg time</p></div>
+        </div>
+        <table>
+          <thead><tr><th>Time (UTC)</th><th>Status</th><th>HTTP</th><th>Time</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    }
+
+    regions.forEach(({ id, file }) => {
+      fetch(file)
+        .then(r => r.text())
+        .then(text => {
+          const entries = text.trim().split('\n')
+            .filter(Boolean).map(JSON.parse).reverse();
+          renderRegion(id, entries);
+        })
+        .catch(() => {
+          document.getElementById(id).innerHTML += '<p style="color:#9ca3af">No data yet</p>';
+        });
+    });
+  </script>
+</body>
+</html>
