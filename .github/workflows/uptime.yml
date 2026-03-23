@@ -13,7 +13,7 @@ jobs:
     name: Check from EU
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check site
         run: |
@@ -37,7 +37,7 @@ jobs:
     name: Check from US
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check site
         run: |
@@ -61,7 +61,7 @@ jobs:
     name: Check from Windows
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check site
         shell: pwsh
