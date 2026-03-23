@@ -53,7 +53,7 @@ jobs:
           echo "{\"time\":\"$TIMESTAMP\",\"status\":\"$STATUS\",\"http_code\":\"$HTTP_CODE\",\"response_time\":$RESPONSE_TIME}" \
             >> metrics-eu.jsonl
 
-          git add metrics-eu.jsonl
+          git add metrics-us.jsonl
           git commit -m "metrics-us $TIMESTAMP"
           git push
   check-win:
