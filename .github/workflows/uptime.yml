@@ -29,8 +29,9 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add metrics-eu.jsonl
+          git add metrics-eu.jsonl   # или metrics-us.jsonl
           git commit -m "metrics-eu $(date -u +%Y-%m-%dT%H:%M:%SZ)" || echo "No changes"
+          git pull --rebase
           git push
 
   check-us:
@@ -53,8 +54,9 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add metrics-us.jsonl
-          git commit -m "metrics-us $(date -u +%Y-%m-%dT%H:%M:%SZ)" || echo "No changes"
+          git add metrics-eu.jsonl   # или metrics-us.jsonl
+          git commit -m "metrics-eu $(date -u +%Y-%m-%dT%H:%M:%SZ)" || echo "No changes"
+          git pull --rebase
           git push
 
   check-win:
@@ -84,10 +86,11 @@ jobs:
           Add-Content -Path "metrics-win.jsonl" -Value $line
 
       - name: Commit
+        shell: pwsh
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add metrics-win.jsonl
           git commit -m "metrics-win $(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ')" || echo "No changes"
+          git pull --rebase
           git push
-        shell: pwsh
