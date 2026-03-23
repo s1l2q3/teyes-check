@@ -1,0 +1,93 @@
+name: Uptime Monitor
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check-eu:
+    name: Check from EU
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check site
+        run: |
+          URL="https://solanteq.com"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" --max-time 10 "$URL" || echo "000")
+          RESPONSE_TIME=$(curl -o /dev/null -s -w "%{time_total}" --max-time 10 "$URL" || echo "0")
+          if [ "$HTTP_CODE" = "200" ]; then STATUS="ok"; else STATUS="fail"; fi
+          echo "{\"time\":\"$TIMESTAMP\",\"status\":\"$STATUS\",\"http_code\":\"$HTTP_CODE\",\"response_time\":$RESPONSE_TIME}" \
+            >> metrics-eu.jsonl
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add metrics-eu.jsonl
+          git commit -m "metrics-eu $(date -u +%Y-%m-%dT%H:%M:%SZ)" || echo "No changes"
+          git push
+
+  check-us:
+    name: Check from US
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check site
+        run: |
+          URL="https://solanteq.com"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" --max-time 10 "$URL" || echo "000")
+          RESPONSE_TIME=$(curl -o /dev/null -s -w "%{time_total}" --max-time 10 "$URL" || echo "0")
+          if [ "$HTTP_CODE" = "200" ]; then STATUS="ok"; else STATUS="fail"; fi
+          echo "{\"time\":\"$TIMESTAMP\",\"status\":\"$STATUS\",\"http_code\":\"$HTTP_CODE\",\"response_time\":$RESPONSE_TIME}" \
+            >> metrics-us.jsonl
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add metrics-us.jsonl
+          git commit -m "metrics-us $(date -u +%Y-%m-%dT%H:%M:%SZ)" || echo "No changes"
+          git push
+
+  check-win:
+    name: Check from Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check site
+        shell: pwsh
+        run: |
+          $url = "https://solanteq.com"
+          $timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+          try {
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            $resp = Invoke-WebRequest -Uri $url -TimeoutSec 10 -UseBasicParsing
+            $sw.Stop()
+            $code = $resp.StatusCode
+            $time = [math]::Round($sw.Elapsed.TotalSeconds, 3)
+            $status = "ok"
+          } catch {
+            $code = "000"
+            $time = 0
+            $status = "fail"
+          }
+          $line = "{`"time`":`"$timestamp`",`"status`":`"$status`",`"http_code`":`"$code`",`"response_time`":$time}"
+          Add-Content -Path "metrics-win.jsonl" -Value $line
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add metrics-win.jsonl
+          git commit -m "metrics-win $(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ')" || echo "No changes"
+          git push
+        shell: pwsh
