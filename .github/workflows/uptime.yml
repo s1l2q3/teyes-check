@@ -16,7 +16,11 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Check site
-        run: |
+      run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git pull origin main
+
           URL="https://solanteq.com"
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" --max-time 10 "$URL" || echo "000")
@@ -25,13 +29,8 @@ jobs:
           echo "{\"time\":\"$TIMESTAMP\",\"status\":\"$STATUS\",\"http_code\":\"$HTTP_CODE\",\"response_time\":$RESPONSE_TIME}" \
             >> metrics-eu.jsonl
 
-      - name: Commit
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add metrics-eu.jsonl   # или metrics-us.jsonl
-          git commit -m "metrics-eu $(date -u +%Y-%m-%dT%H:%M:%SZ)" || echo "No changes"
-          git pull --rebase
+          git add metrics-eu.jsonl
+          git commit -m "metrics-eu $TIMESTAMP"
           git push
 
   check-us:
@@ -42,32 +41,34 @@ jobs:
 
       - name: Check site
         run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git pull origin main
+
           URL="https://solanteq.com"
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" --max-time 10 "$URL" || echo "000")
           RESPONSE_TIME=$(curl -o /dev/null -s -w "%{time_total}" --max-time 10 "$URL" || echo "0")
           if [ "$HTTP_CODE" = "200" ]; then STATUS="ok"; else STATUS="fail"; fi
           echo "{\"time\":\"$TIMESTAMP\",\"status\":\"$STATUS\",\"http_code\":\"$HTTP_CODE\",\"response_time\":$RESPONSE_TIME}" \
-            >> metrics-us.jsonl
+            >> metrics-eu.jsonl
 
-      - name: Commit
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add metrics-eu.jsonl   # или metrics-us.jsonl
-          git commit -m "metrics-eu $(date -u +%Y-%m-%dT%H:%M:%SZ)" || echo "No changes"
-          git pull --rebase
+          git add metrics-eu.jsonl
+          git commit -m "metrics-us $TIMESTAMP"
           git push
-
   check-win:
     name: Check from Windows
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
 
-      - name: Check site
+      - name: Check and commit
         shell: pwsh
         run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git pull origin main
+
           $url = "https://solanteq.com"
           $timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
           try {
@@ -78,19 +79,11 @@ jobs:
             $time = [math]::Round($sw.Elapsed.TotalSeconds, 3)
             $status = "ok"
           } catch {
-            $code = "000"
-            $time = 0
-            $status = "fail"
+            $code = "000"; $time = 0; $status = "fail"
           }
           $line = "{`"time`":`"$timestamp`",`"status`":`"$status`",`"http_code`":`"$code`",`"response_time`":$time}"
+          git pull origin main
           Add-Content -Path "metrics-win.jsonl" -Value $line
-
-      - name: Commit
-        shell: pwsh
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
           git add metrics-win.jsonl
-          git commit -m "metrics-win $(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ')" || echo "No changes"
-          git pull --rebase
+          git commit -m "metrics-win $timestamp"
           git push
