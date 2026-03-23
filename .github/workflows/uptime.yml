@@ -17,21 +17,26 @@ jobs:
 
       - name: Check site
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git pull origin main
-
           URL="https://solanteq.com"
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" --max-time 10 "$URL" || echo "000")
           RESPONSE_TIME=$(curl -o /dev/null -s -w "%{time_total}" --max-time 10 "$URL" || echo "0")
           if [ "$HTTP_CODE" = "200" ]; then STATUS="ok"; else STATUS="fail"; fi
-          echo "{\"time\":\"$TIMESTAMP\",\"status\":\"$STATUS\",\"http_code\":\"$HTTP_CODE\",\"response_time\":$RESPONSE_TIME}" \
-            >> metrics-eu.jsonl
 
-          git add metrics-eu.jsonl
-          git commit -m "metrics-eu $TIMESTAMP"
-          git push
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          for i in 1 2 3 4 5; do
+            git pull origin main
+            echo "{\"time\":\"$TIMESTAMP\",\"status\":\"$STATUS\",\"http_code\":\"$HTTP_CODE\",\"response_time\":$RESPONSE_TIME}" \
+              >> metrics-eu.jsonl
+            git add metrics-eu.jsonl
+            git commit -m "metrics-eu $TIMESTAMP" || true
+            git push && break
+            echo "Push failed, retry $i..."
+            git checkout metrics-eu.jsonl
+            sleep $((RANDOM % 5 + 2))
+          done
 
   check-us:
     name: Check from US
@@ -41,21 +46,26 @@ jobs:
 
       - name: Check site
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git pull origin main
-
           URL="https://solanteq.com"
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           HTTP_CODE=$(curl -o /dev/null -s -w "%{http_code}" --max-time 10 "$URL" || echo "000")
           RESPONSE_TIME=$(curl -o /dev/null -s -w "%{time_total}" --max-time 10 "$URL" || echo "0")
           if [ "$HTTP_CODE" = "200" ]; then STATUS="ok"; else STATUS="fail"; fi
-          echo "{\"time\":\"$TIMESTAMP\",\"status\":\"$STATUS\",\"http_code\":\"$HTTP_CODE\",\"response_time\":$RESPONSE_TIME}" \
-            >> metrics-us.jsonl
 
-          git add metrics-us.jsonl
-          git commit -m "metrics-us $TIMESTAMP"
-          git push
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          for i in 1 2 3 4 5; do
+            git pull origin main
+            echo "{\"time\":\"$TIMESTAMP\",\"status\":\"$STATUS\",\"http_code\":\"$HTTP_CODE\",\"response_time\":$RESPONSE_TIME}" \
+              >> metrics-us.jsonl
+            git add metrics-us.jsonl
+            git commit -m "metrics-us $TIMESTAMP" || true
+            git push && break
+            echo "Push failed, retry $i..."
+            git checkout metrics-us.jsonl
+            sleep $((RANDOM % 5 + 2))
+          done
 
   check-win:
     name: Check from Windows
@@ -68,7 +78,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git pull origin main
 
           $url = "https://solanteq.com"
           $timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
@@ -83,7 +92,15 @@ jobs:
             $code = "000"; $time = 0; $status = "fail"
           }
           $line = "{`"time`":`"$timestamp`",`"status`":`"$status`",`"http_code`":`"$code`",`"response_time`":$time}"
-          Add-Content -Path "metrics-win.jsonl" -Value $line
-          git add metrics-win.jsonl
-          git commit -m "metrics-win $timestamp"
-          git push
+
+          foreach ($i in 1..5) {
+            git pull origin main
+            Add-Content -Path "metrics-win.jsonl" -Value $line
+            git add metrics-win.jsonl
+            git commit -m "metrics-win $timestamp" 2>$null
+            git push
+            if ($LASTEXITCODE -eq 0) { break }
+            Write-Host "Push failed, retry $i..."
+            git checkout metrics-win.jsonl
+            Start-Sleep -Seconds (Get-Random -Minimum 2 -Maximum 7)
+          }
